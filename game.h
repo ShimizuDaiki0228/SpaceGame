@@ -21,10 +21,15 @@ public:
 
 	SDL_Texture* GetTexture(const std::string& fileName);
 
-	// Game-specific (add/remove asteroid)
 	void AddAsteroid(class Asteroid* ast);
 	void RemoveAsteroid(class Asteroid* ast);
 	std::vector<class Asteroid*>& GetAsteroids() { return _asteroids; }
+
+	int GetWindowWidth() { return WINDOW_WIDTH; }
+	int GetWindowHeight() { return WINDOW_HEIGHT; }
+
+	void ReSetVanishTime() { _startVanishTime = 0; }
+
 private:
 	void ProcessInput();
 	void UpdateGame();
@@ -48,4 +53,11 @@ private:
 
 	class Ship* _ship;
 	std::vector<class Asteroid*> _asteroids;
+
+	const int WINDOW_WIDTH = 1024;
+	const int WINDOW_HEIGHT = 764;
+
+	float _startVanishTime;
 };
+
+bool IsVanishing(float min, float max, float diffTime);

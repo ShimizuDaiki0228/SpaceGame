@@ -1,12 +1,15 @@
-#include "Ship.h"
-#include "SpriteComponent.h"
-#include "InputComponent.h"
-#include "Game.h"
-#include "Laser.h"
+#include "ship.h"
+#include "spriteComponent.h"
+#include "inputComponent.h"
+#include "game.h"
+#include "laser.h"
+#include "asteroid.h"
+#include "math.h"
 
 Ship::Ship(Game* game)
 	:Actor(game)
 	, _laserCooldown(0.0f)
+	, _invincibilityTime(0.0f)
 {
 	// Create a sprite component
 	SpriteComponent* sc = new SpriteComponent(this, 150);
@@ -20,11 +23,35 @@ Ship::Ship(Game* game)
 	ic->SetCounterClockwiseKey(SDL_SCANCODE_D);
 	ic->SetMaxForwardSpeed(300.0f);
 	ic->SetMaxAngularSpeed(Math::TwoPi);
+
+	_circle = new CircleComponent(this);
+	_circle->SetRadius(GetScale());
+
+	_resetPos.Set(GetGame()->GetWindowWidth() / 2, GetGame()->GetWindowHeight() / 2);
 }
 
 void Ship::UpdateActor(float deltaTime)
 {
 	_laserCooldown -= deltaTime;
+	_invincibilityTime -= deltaTime;
+
+	IntersectAsteroid();
+}
+
+void Ship::IntersectAsteroid()
+{
+	if (_invincibilityTime < 0.0f)
+	{
+		for (auto ast : GetGame()->GetAsteroids())
+		{
+			if (Intersect(*_circle, *(ast->GetCircle())))
+			{
+				GetGame()->ReSetVanishTime();
+				_invincibilityTime = 2.0f;
+				SetPosition(_resetPos);
+			}
+		}
+	}
 }
 
 void Ship::ActorInput(const uint8_t* keyState)

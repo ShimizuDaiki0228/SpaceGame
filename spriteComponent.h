@@ -14,6 +14,8 @@ public:
 	int GetDrawOrder() const { return _drawOrder; }
 	int GetTexHeight() const { return _texHeight; }
 	int GetTexWidth() const { return _texWidth; }
+
+	Actor* GetOwner() const { return _owner; }
 protected:
 	SDL_Texture* _texture;
 	int _drawOrder;

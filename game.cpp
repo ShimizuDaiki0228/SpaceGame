@@ -12,6 +12,7 @@ Game::Game()
 	, _renderer(nullptr)
 	, _isRunning(true)
 	, _updatingActors(false)
+	, _startVanishTime(0)
 {
 
 }
@@ -24,7 +25,7 @@ bool Game::Initialize()
 		return false;
 	}
 
-	_window = SDL_CreateWindow("Game Programming in C++ (Chapter 3)", 100, 100, 1024, 768, 0);
+	_window = SDL_CreateWindow("Game Programming in C++ (Chapter 3)", 100, 100, WINDOW_WIDTH, WINDOW_HEIGHT, 0);
 	if (!_window)
 	{
 		SDL_Log("Failed to create window: %s", SDL_GetError());
@@ -92,8 +93,6 @@ void Game::ProcessInput()
 
 void Game::UpdateGame()
 {
-	// Compute delta time
-	// Wait until 16ms has elapsed since last frame
 	while (!SDL_TICKS_PASSED(SDL_GetTicks(), _ticksCount + 16))
 		;
 
@@ -104,7 +103,6 @@ void Game::UpdateGame()
 	}
 	_ticksCount = SDL_GetTicks();
 
-	// Update all actors
 	_updatingActors = true;
 	for (auto actor : _actors)
 	{
@@ -112,14 +110,12 @@ void Game::UpdateGame()
 	}
 	_updatingActors = false;
 
-	// Move any pending actors to mActors
 	for (auto pending : _pendingActors)
 	{
 		_actors.emplace_back(pending);
 	}
 	_pendingActors.clear();
 
-	// Add any dead actors to a temp vector
 	std::vector<Actor*> deadActors;
 	for (auto actor : _actors)
 	{
@@ -129,11 +125,12 @@ void Game::UpdateGame()
 		}
 	}
 
-	// Delete dead actors (which removes them from mActors)
 	for (auto actor : deadActors)
 	{
 		delete actor;
 	}
+
+	_startVanishTime += deltaTime;
 }
 
 void Game::GenerateOutput()
@@ -141,23 +138,40 @@ void Game::GenerateOutput()
 	SDL_SetRenderDrawColor(_renderer, 220, 220, 220, 255);
 	SDL_RenderClear(_renderer);
 
-	// Draw all sprite components
+	
 	for (auto sprite : _sprites)
 	{
+		Actor* actor = sprite->GetOwner();
+		if (actor && actor->GetType() == "Ship")
+		{
+			float diffTime = _startVanishTime - (int)_startVanishTime;
+			if (actor->IsInvincibility() && (IsVanishing(0.0f, 0.25f, diffTime) || IsVanishing(0.5f, 0.75f, diffTime)))
+			{
+				continue;
+			}
+		}
 		sprite->Draw(_renderer);
 	}
 
+	
+	
 	SDL_RenderPresent(_renderer);
+}
+
+bool IsVanishing(float min, float max, float diffTime)
+{
+	if (diffTime > min && diffTime <= max) return true;
+	return false;
 }
 
 void Game::LoadData()
 {
-	// Create player's ship
+	//プレイヤーの船を作成
 	_ship = new Ship(this);
 	_ship->SetPosition(Vector2(512.0f, 384.0f));
 	_ship->SetRotation(Math::PiOver2);
 
-	// Create asteroids
+	// 惑星を作成
 	const int numAsteroids = 20;
 	for (int i = 0; i < numAsteroids; i++)
 	{
@@ -167,14 +181,13 @@ void Game::LoadData()
 
 void Game::UnloadData()
 {
-	// Delete actors
-	// Because ~Actor calls RemoveActor, have to use a different style loop
+	// アクターを削除
 	while (!_actors.empty())
 	{
 		delete _actors.back();
 	}
 
-	// Destroy textures
+	// テクスチャを破棄する
 	for (auto i : _textures)
 	{
 		SDL_DestroyTexture(i.second);
@@ -185,7 +198,7 @@ void Game::UnloadData()
 SDL_Texture* Game::GetTexture(const std::string& fileName)
 {
 	SDL_Texture* tex = nullptr;
-	// Is the texture already in the map?
+	// テクスチャが存在するか
 	auto iter = _textures.find(fileName);
 	if (iter != _textures.end())
 	{
@@ -193,7 +206,7 @@ SDL_Texture* Game::GetTexture(const std::string& fileName)
 	}
 	else
 	{
-		// Load from file
+		// ファイルからロードする
 		SDL_Surface* surf = IMG_Load(fileName.c_str());
 		if (!surf)
 		{
@@ -201,7 +214,7 @@ SDL_Texture* Game::GetTexture(const std::string& fileName)
 			return nullptr;
 		}
 
-		// Create texture from surface
+		// surfaceからテクスチャを取得
 		tex = SDL_CreateTextureFromSurface(_renderer, surf);
 		SDL_FreeSurface(surf);
 		if (!tex)
@@ -253,20 +266,16 @@ void Game::AddActor(Actor* actor)
 
 void Game::RemoveActor(Actor* actor)
 {
-	// Is it in pending actors?
 	auto iter = std::find(_pendingActors.begin(), _pendingActors.end(), actor);
 	if (iter != _pendingActors.end())
 	{
-		// Swap to end of vector and pop off (avoid erase copies)
 		std::iter_swap(iter, _pendingActors.end() - 1);
 		_pendingActors.pop_back();
 	}
 
-	// Is it in actors?
 	iter = std::find(_actors.begin(), _actors.end(), actor);
 	if (iter != _actors.end())
 	{
-		// Swap to end of vector and pop off (avoid erase copies)
 		std::iter_swap(iter, _actors.end() - 1);
 		_actors.pop_back();
 	}
@@ -286,13 +295,11 @@ void Game::AddSprite(SpriteComponent* sprite)
 		}
 	}
 
-	// Inserts element before position of iterator
 	_sprites.insert(iter, sprite);
 }
 
 void Game::RemoveSprite(SpriteComponent* sprite)
 {
-	// (We can't swap because it ruins ordering)
 	auto iter = std::find(_sprites.begin(), _sprites.end(), sprite);
 	_sprites.erase(iter);
 }

@@ -37,9 +37,11 @@ public:
 
 	class Game* GetGame() { return _game; }
 
-
 	void AddComponent(class Component* component);
 	void RemoveComponent(class Component* component);
+
+	virtual const char* GetType() const { return "Actor"; }
+	virtual bool IsInvincibility() const { return false; }
 private:
 	State _state;
 
