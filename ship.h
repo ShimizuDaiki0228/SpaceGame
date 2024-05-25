@@ -19,5 +19,6 @@ private:
 	CircleComponent* _circle;
 
 	Vector2 _resetPos;
+	float _resetRot;
 	float _invincibilityTime;
 };
