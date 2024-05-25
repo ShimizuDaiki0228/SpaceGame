@@ -28,6 +28,7 @@ Ship::Ship(Game* game)
 	_circle->SetRadius(GetScale());
 
 	_resetPos.Set(GetGame()->GetWindowWidth() / 2, GetGame()->GetWindowHeight() / 2);
+	_resetRot = Math::PiOver2;
 }
 
 void Ship::UpdateActor(float deltaTime)
@@ -49,6 +50,7 @@ void Ship::IntersectAsteroid()
 				GetGame()->ReSetVanishTime();
 				_invincibilityTime = 2.0f;
 				SetPosition(_resetPos);
+				SetRotation(_resetRot);
 			}
 		}
 	}
